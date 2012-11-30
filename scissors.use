@@ -2,6 +2,5 @@ Name: scissors
 Version: 0.1
 Description: Running ooc. With scissors
 Pkgs: rock
-Includes: 
 SourcePath: source
 
