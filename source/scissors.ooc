@@ -1,4 +1,5 @@
 
+use scissors
 use rock
 
 import structs/ArrayList
