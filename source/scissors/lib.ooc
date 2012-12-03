@@ -4,7 +4,8 @@ use rock
 import structs/[ArrayList, HashMap]
 
 import rock/frontend/[BuildParams, AstBuilder, Token, PathList]
-import rock/middle/[Module, FunctionDecl, TypeDecl]
+import rock/middle/[Module, FunctionDecl, TypeDecl, Scope, Block, ControlStatement]
+import rock/middle/tinker/Tinkerer
 
 Scissors: class {
 
@@ -13,6 +14,7 @@ Scissors: class {
     init: func {
         params = BuildParams new("rock")
         params verbose = true // cool for debugging
+        params sourcePath add(params sdkLocation path)
     }
 
     addPath: func (s: String) {
@@ -21,6 +23,8 @@ Scissors: class {
 
     swap: func (oldModule: String, newModule: String, type: String, method: String) {
         oldie := parseModule(oldModule)
+        oldie parseImports(null)
+
         kiddo := parseModule(newModule) 
 
         typeDef := oldie getTypes() get(type)
@@ -33,6 +37,23 @@ Scissors: class {
         "old body = %s" printfln(oldBody toString())
         "new body = %s" printfln(newBody toString())
         "---------------------------" println()
+
+        if (!newBody instanceOf?(Block)) {
+            "[scissors] Error: new body is a %s, not a Block" printfln(newBody class name)
+            return false
+        }
+
+        // type to swap bodies!
+        methodDef body = (newBody as Block) body
+
+        // now resolve all that...
+        tinkerSuccess := Tinkerer new(params) process(oldie collectDeps())
+        if (!tinkerSuccess) {
+            "[scissors] Could not tinker!" println()
+        }
+
+        // now print the body again
+        "resolved body = %s" printfln(newBody toString())
     }
 
     parseModule: func (moduleName: String) -> Module {

@@ -1,7 +1,7 @@
 Name: scissors
 Version: 0.1
 Description: Running ooc. With scissors
-Pkgs: rock
+Requires: rock
 SourcePath: source
 LibPaths: ./third-party
 Libs: -lnagaqueen
