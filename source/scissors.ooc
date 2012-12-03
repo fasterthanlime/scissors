@@ -29,7 +29,7 @@ main: func (args: ArrayList<String>) {
     fullName := moduleName[0..-5]
     module := Module new(fullName, pathElement path, params, nullToken)
 
-    ast := AstBuilder new(modulePath, module, params)
+    AstBuilder new(modulePath, module, params)
 
     walkModule(module)
 
