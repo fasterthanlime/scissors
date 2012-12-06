@@ -7,6 +7,6 @@ before_install:
 script:
   - export OOC_LIBS=$PWD
   - cd samples
-# - mkdir -p travis
-# - rock -v example -o=travis/example && travis/example
+  - make random
+  - ./random
 

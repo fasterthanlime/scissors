@@ -1,11 +1,17 @@
-use scissors
-use rock
 
 import structs/[ArrayList, HashMap]
+
+use scissors
+
+use rock
 
 import rock/frontend/[BuildParams, AstBuilder, Token, PathList]
 import rock/middle/[Module, FunctionDecl, TypeDecl, Scope, Block, ControlStatement]
 import rock/middle/tinker/Tinkerer
+
+use llvm
+
+import llvm/[Core, ExecutionEngine, Target]
 
 Scissors: class {
 
@@ -56,6 +62,8 @@ Scissors: class {
 
         // now print the body again
         "[scissors] resolved body = %s" printfln(newBody toString())
+
+        // now JIT compile it :)
     }
 
     parseModule: func (moduleName: String) -> Module {
