@@ -52,8 +52,10 @@ Scissors: class {
             "[scissors] Could not tinker!" println()
         }
 
+        "[scissors] Done tinkering" println()
+
         // now print the body again
-        "resolved body = %s" printfln(newBody toString())
+        "[scissors] resolved body = %s" printfln(newBody toString())
     }
 
     parseModule: func (moduleName: String) -> Module {
