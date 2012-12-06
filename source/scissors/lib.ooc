@@ -6,7 +6,7 @@ use rock
 
 import rock/frontend/[BuildParams, AstBuilder, Token, PathList]
 import rock/middle/[Module, FunctionDecl, TypeDecl, Scope, Block, ControlStatement]
-import rock/middle/tinker/Tinkerer
+import rock/middle/tinker/[Tinkerer, Errors]
 
 use llvm
 
@@ -18,8 +18,9 @@ Scissors: class {
 
     init: func {
         params = BuildParams new("rock")
-        params verbose = true // cool for debugging
+        params verbose = false
         params sourcePath add(params sdkLocation path)
+        params errorHandler = ScissorsErrorHandler new() as ErrorHandler
     }
 
     addPath: func (s: String) {
@@ -92,6 +93,15 @@ Swapper: class {
 
         // now print the body again
         "[scissors] resolved body = %s" printfln(methodDef body toString())
+    }
+
+}
+
+ScissorsErrorHandler: class implements ErrorHandler {
+
+    onError: func (e: Error) {
+        "Compilation error: " println()
+        e format() println()
     }
 
 }
