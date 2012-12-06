@@ -33,6 +33,31 @@ Scissors: class {
 
         kiddo := parseModule(newModule) 
 
+        swapper := Swapper new(oldie, kiddo, type, method, params)
+    }
+
+    parseModule: func (moduleName: String) -> Module {
+        (moduleFile, pathElement) := params sourcePath getFile(moduleName)
+        if (!moduleFile) {
+            "File not found: %s" printfln(moduleName)
+            exit(1)
+        }
+
+        modulePath := moduleFile path
+        fullName := moduleName[0..-5]
+        module := Module new(fullName, pathElement path, params, nullToken)
+
+        AstBuilder new(modulePath, module, params)
+        module
+    }
+
+}
+
+Swapper: class {
+
+    oldie, kiddo: Module
+
+    init: func (=oldie, =kiddo, type: String, method: String, params: BuildParams) {
         typeDef := oldie getTypes() get(type)
         methodDef := typeDef getMeta() getFunctions() get(method)
 
@@ -53,7 +78,8 @@ Scissors: class {
         methodDef body = (newBody as Block) body
 
         // now resolve all that...
-        tinkerSuccess := Tinkerer new(params) process(oldie collectDeps())
+        tinkerer := Tinkerer new(params)
+        tinkerSuccess := tinkerer process(oldie collectDeps())
         if (!tinkerSuccess) {
             "[scissors] Could not tinker!" println()
         }
@@ -64,21 +90,6 @@ Scissors: class {
         "[scissors] resolved body = %s" printfln(newBody toString())
 
         // now JIT compile it :)
-    }
-
-    parseModule: func (moduleName: String) -> Module {
-        (moduleFile, pathElement) := params sourcePath getFile(moduleName)
-        if (!moduleFile) {
-            "File not found: %s" printfln(moduleName)
-            exit(1)
-        }
-
-        modulePath := moduleFile path
-        fullName := moduleName[0..-5]
-        module := Module new(fullName, pathElement path, params, nullToken)
-
-        AstBuilder new(modulePath, module, params)
-        module
     }
 
 }
