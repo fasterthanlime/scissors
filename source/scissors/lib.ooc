@@ -1,4 +1,3 @@
-
 import structs/[ArrayList, HashMap]
 
 use scissors
@@ -34,6 +33,7 @@ Scissors: class {
         kiddo := parseModule(newModule) 
 
         swapper := Swapper new(oldie, kiddo, type, method, params)
+        swapper resolve()
     }
 
     parseModule: func (moduleName: String) -> Module {
@@ -56,10 +56,15 @@ Scissors: class {
 Swapper: class {
 
     oldie, kiddo: Module
+    methodDef: FunctionDecl
+    params: BuildParams
+    tinkerer: Tinkerer
 
-    init: func (=oldie, =kiddo, type: String, method: String, params: BuildParams) {
+    init: func (=oldie, =kiddo, type: String, method: String, =params) {
+        tinkerer = Tinkerer new(params)
+
         typeDef := oldie getTypes() get(type)
-        methodDef := typeDef getMeta() getFunctions() get(method)
+        methodDef = typeDef getMeta() getFunctions() get(method)
 
         oldBody := methodDef body
         newBody := kiddo body list[0]
@@ -74,22 +79,19 @@ Swapper: class {
             return false
         }
 
-        // type to swap bodies!
+        // Swap bodies. For proof, refer to Keeler's Theorem.
         methodDef body = (newBody as Block) body
+    }
 
-        // now resolve all that...
-        tinkerer := Tinkerer new(params)
+    resolve: func {
         tinkerSuccess := tinkerer process(oldie collectDeps())
         if (!tinkerSuccess) {
             "[scissors] Could not tinker!" println()
         }
-
         "[scissors] Done tinkering" println()
 
         // now print the body again
-        "[scissors] resolved body = %s" printfln(newBody toString())
-
-        // now JIT compile it :)
+        "[scissors] resolved body = %s" printfln(methodDef body toString())
     }
 
 }
