@@ -30,6 +30,8 @@ Generator: class {
     provider: LModuleProvider
     engine: LExecutionEngine
 
+    passManager: LPassManager
+
     varmap := HashMap<VariableDecl, LValue> new()
 
     init: func (=method) {
@@ -42,12 +44,35 @@ Generator: class {
 
         provider = LModuleProvider new(module)
         engine = LExecutionEngine new(provider)
+
+        passManager = module createFunctionPassManager()
+        passManager addPromoteMemoryToRegisterPass()
+        passManager addConstantPropagationPass()
     }
 
     compile: func -> Pointer {
         walkFunction(method)
 
+        // first, verify our module
+        success := function verify(LVerifierFailureAction printMessage)
+        if (success != 0) {
+          "Invalid code generated, bailing out" println()
+          Exception new("Invalid code generated") throw()
+        }
+
         // dump our module for debugging purposes
+        module dump()
+
+        // optimize!
+        passManager run(function)
+
+        // dump again after optimization
+        println()
+        "==================================" println()
+        "Post-optimization, module = " println()
+        "==================================" println()
+        println()
+
         module dump()
 
         addr := engine recompileAndRelinkFunction(function)

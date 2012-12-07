@@ -1,6 +1,4 @@
 
-use llvm // hey rock, that shouldn't be needed.
-
 use scissors
 import scissors/lib
 
