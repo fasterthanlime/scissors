@@ -156,9 +156,8 @@ Generator: class {
                 varmap put(vDecl, var)
 
                 if (vDecl expr) {
-                    builder store(walkExpression(vDecl expr), var)
+                    builder store(cast(walkExpression(vDecl expr), toLType(vDecl getType())), var)
                 }
-                var
             case =>
                 Exception new("[scissors] Unsupported statement: %s" \
                     format(stat class name)) throw()
@@ -168,8 +167,7 @@ Generator: class {
     walkExpression: func (expr: Expression) -> LValue {
         match expr {
             case cast: Cast =>
-                // TODO: support other types of casts
-                builder intCast(walkExpression(cast inner), toLType(cast getType()), "castResult")
+                cast(walkExpression(cast inner), toLType(cast getType()))
             case ilit: IntLiteral =>
                 LValue constInt(LType int64(), ilit value, true)
             case binop: BinaryOp =>
@@ -200,6 +198,12 @@ Generator: class {
                     format(ref class name)) throw()
                 nullValue()
         }
+    }
+
+
+    cast: func (val: LValue, type:  LType) -> LValue {
+        // TODO: support other types of casts
+        builder intCast(val, type, "castResult")
     }
 
     walkBinaryOp: func (binop: BinaryOp) -> LValue {

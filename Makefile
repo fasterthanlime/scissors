@@ -1,6 +1,6 @@
 ROCK_DIST?=../rock/
 
-OOCFLAGS:='-DROCK_BUILD_DATE="lib"' '-DROCK_BUILD_TIME="lib"'
+OOCFLAGS:='-DROCK_BUILD_DATE=\"lib\"' '-DROCK_BUILD_TIME=\"lib\"'
 
 all:
 	rock -v source/scissors $(OOCFLAGS) -o=bin/scissors

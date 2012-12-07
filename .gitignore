@@ -1,4 +1,5 @@
 .libs
 rock_tmp
 random
+*.exe
 
