@@ -219,16 +219,19 @@ Generator: class {
     }
 
     walkIntBinaryOp: func (binop: BinaryOp) -> LValue {
+        lhs := cast(walkExpression(binop left ), toLType(binop getType()))
+        rhs := cast(walkExpression(binop right), toLType(binop getType()))
+
         match (binop type) {
             case OpType add =>
-                builder add(walkExpression(binop left), walkExpression(binop right), "addResult")
+                builder add(lhs, rhs, "add")
             case OpType sub =>
-                builder sub(walkExpression(binop left), walkExpression(binop right), "subResult")
+                builder sub(lhs, rhs, "sub")
             case OpType mul =>
-                builder mul(walkExpression(binop left), walkExpression(binop right), "mulResult")
+                builder mul(lhs, rhs, "mul")
             case OpType div =>
                 // TODO: handle unsigned div
-                builder sdiv(walkExpression(binop left), walkExpression(binop right), "divResult")
+                builder sdiv(lhs, rhs, "sdiv")
             case =>
                 Exception new("[scissors] Unsupported int binary operator: %s" \
                     format(opTypeRepr[binop type])) throw()
