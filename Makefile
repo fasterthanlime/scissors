@@ -10,7 +10,7 @@ nagaqueen:
 	ar cr third-party/libnagaqueen.a third-party/nagaqueen.o
 
 random:
-	rock -g -v --sourcepath=samples random $(OOCFLAGS)
+	rock -g -v --sourcepath=samples --allerrors random $(OOCFLAGS)
 
 clean:
 	rock -x
