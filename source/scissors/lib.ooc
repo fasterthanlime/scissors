@@ -11,7 +11,6 @@ import rock/middle/tinker/[Tinkerer, Errors]
 Scissors: class {
 
     params: BuildParams
-    generator: Generator
 
     init: func {
         params = BuildParams new("rock")
@@ -19,7 +18,7 @@ Scissors: class {
         params sourcePath add(params sdkLocation path)
         params errorHandler = ScissorsErrorHandler new() as ErrorHandler
 
-        generator = Generator new()
+        Generator initialize()
     }
 
     addPath: func (s: String) {
@@ -35,7 +34,8 @@ Scissors: class {
         swapper := Swapper new(oldie, kiddo, type, method, params)
         fd := swapper resolve()
 
-        addr := generator compile(fd)
+        generator := Generator new(fd)
+        addr := generator compile()
         "Got function at address %p" printfln(addr)
         addr
     }
