@@ -1,40 +1,43 @@
 import structs/[ArrayList, HashMap]
 
 use scissors
+import scissors/[codegen]
 
 use rock
-
 import rock/frontend/[BuildParams, AstBuilder, Token, PathList]
 import rock/middle/[Module, FunctionDecl, TypeDecl, Scope, Block, ControlStatement]
 import rock/middle/tinker/[Tinkerer, Errors]
 
-use llvm
-
-import llvm/[Core, ExecutionEngine, Target]
-
 Scissors: class {
 
     params: BuildParams
+    generator: Generator
 
     init: func {
         params = BuildParams new("rock")
         params verbose = false
         params sourcePath add(params sdkLocation path)
         params errorHandler = ScissorsErrorHandler new() as ErrorHandler
+
+        generator = Generator new()
     }
 
     addPath: func (s: String) {
         params sourcePath add(s)
     }
 
-    swap: func (oldModule: String, newModule: String, type: String, method: String) {
+    swap: func (oldModule: String, newModule: String, type: String, method: String) -> Pointer {
         oldie := parseModule(oldModule)
         oldie parseImports(null)
 
         kiddo := parseModule(newModule) 
 
         swapper := Swapper new(oldie, kiddo, type, method, params)
-        swapper resolve()
+        fd := swapper resolve()
+
+        addr := generator compile(fd)
+        "Got function at address %p" printfln(addr)
+        addr
     }
 
     parseModule: func (moduleName: String) -> Module {
@@ -84,7 +87,7 @@ Swapper: class {
         methodDef body = (newBody as Block) body
     }
 
-    resolve: func {
+    resolve: func -> FunctionDecl {
         tinkerSuccess := tinkerer process(oldie collectDeps())
         if (!tinkerSuccess) {
             "[scissors] Could not tinker!" println()
@@ -93,6 +96,8 @@ Swapper: class {
 
         // now print the body again
         "[scissors] resolved body = %s" printfln(methodDef body toString())
+
+        methodDef
     }
 
 }

@@ -22,7 +22,7 @@ App: class {
         "===========================" println()
         println()
 
-        s swap("dice.ooc", "newdice.ooc", "Dice", "generate")
+        Dice generate = s swap("dice.ooc", "newdice.ooc", "Dice", "generate")
 
         println()
         "===========================" println()
