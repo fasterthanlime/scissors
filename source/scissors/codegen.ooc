@@ -48,7 +48,11 @@ Generator: class {
 
         passManager = module createFunctionPassManager()
         passManager addPromoteMemoryToRegisterPass()
+        passManager addEarlyCSEPass()
         passManager addConstantPropagationPass()
+        passManager addCorrelatedValuePropagationPass()
+        passManager addCFGSimplificationPass()
+        passManager addSCCPPass()
         passManager addAggressiveDCEPass()
     }
 
