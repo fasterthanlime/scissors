@@ -10,7 +10,7 @@ import llvm/[Core, ExecutionEngine, Target]
 use rock
 import rock/middle/[FunctionDecl, Type, Scope, Return, Statement, Cast, IntLiteral,
         Expression, BinaryOp, Parenthesis, VariableDecl, VariableAccess, Ternary,
-        Comparison]
+        Comparison, Block]
 
 TypeKind: enum {
     INT
@@ -164,9 +164,19 @@ Generator: class {
                 if (vDecl expr) {
                     builder store(cast(walkExpression(vDecl expr), toLType(vDecl getType())), var)
                 }
+            case block: Block =>
+                walkBlock(block)
+            case expr: Expression =>
+                walkExpression(expr)
             case =>
                 Exception new("[scissors] Unsupported statement: %s" \
                     format(stat class name)) throw()
+        }
+    }
+
+    walkBlock: func (block: Block) {
+        for (stat in block body list) {
+            walkStatement(stat)
         }
     }
 
@@ -290,13 +300,38 @@ Generator: class {
     }
 
     walkBinaryOp: func (binop: BinaryOp) -> LValue {
-        kind := typeKind(binop getType())
-        match kind {
-            case TypeKind INT =>
-                walkIntBinaryOp(binop)
+        match (binop type) {
+            case OpType ass =>
+                walkAssignment(binop)
             case =>
-                Exception new("[scissors] Unsupported binop typekind: %d" \
-                    format(kind)) throw()
+                kind := typeKind(binop getType())
+                match kind {
+                    case TypeKind INT =>
+                        walkIntBinaryOp(binop)
+                    case =>
+                        Exception new("[scissors] Unsupported binop typekind: %d" \
+                            format(kind)) throw()
+                        nullValue()
+                }
+        }
+    }
+
+    walkAssignment: func (binop: BinaryOp) -> LValue {
+        match (binop left) {
+            case vAcc: VariableAccess =>
+                ref := vAcc getRef()
+                match (ref) {
+                    case vDecl: VariableDecl =>
+                        var := varmap get(vDecl)
+                        builder store(cast(walkExpression(binop right), toLType(vDecl getType())), var)
+                    case =>
+                        Exception new("[scissors] Unsupported assignment ref: %s" \
+                            format(ref class name)) throw()
+                        nullValue()
+                }
+            case =>
+                Exception new("[scissors] Unsupported assignment target: %s" \
+                    format(binop left class name)) throw()
                 nullValue()
         }
     }
