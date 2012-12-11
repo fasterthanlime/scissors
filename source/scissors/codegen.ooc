@@ -9,7 +9,8 @@ import llvm/[Core, ExecutionEngine, Target]
 
 use rock
 import rock/middle/[FunctionDecl, Type, Scope, Return, Statement, Cast, IntLiteral,
-        Expression, BinaryOp, Parenthesis, VariableDecl, VariableAccess]
+        Expression, BinaryOp, Parenthesis, VariableDecl, VariableAccess, Ternary,
+        Comparison]
 
 TypeKind: enum {
     INT
@@ -48,6 +49,7 @@ Generator: class {
         passManager = module createFunctionPassManager()
         passManager addPromoteMemoryToRegisterPass()
         passManager addConstantPropagationPass()
+        passManager addAggressiveDCEPass()
     }
 
     compile: func -> Pointer {
@@ -176,11 +178,79 @@ Generator: class {
                 walkExpression(paren inner)
             case vAcc: VariableAccess =>
                 walkVariableAccess(vAcc) 
+            case ternary: Ternary =>
+                walkTernary(ternary)
+            case comparison: Comparison =>
+                walkComparison(comparison)
             case =>
                 Exception new("[scissors] Unsupported expression: %s" \
                     format(expr class name)) throw()
                 nullValue()
         }
+    }
+
+    walkComparison: func (comparison: Comparison) -> LValue {
+        kind := typeKind(comparison left getType())
+        match kind {
+            case TypeKind INT =>
+                walkIntComparison(comparison)
+            case =>
+                Exception new("[scissors] Unsupported comparison typekind: %d" \
+                    format(kind)) throw()
+                nullValue()
+        }
+    }
+
+    walkIntComparison: func (comparison: Comparison) -> LValue {
+        ltype := toLType(comparison left getType())
+        lhs := cast(walkExpression(comparison left ), ltype)
+        rhs := cast(walkExpression(comparison right), ltype)
+
+        pred := match (comparison compType) {
+            case CompType equal          => LIntPredicate eq
+            case CompType notEqual       => LIntPredicate ne
+            case CompType greaterThan    => LIntPredicate sgt
+            case CompType smallerThan    => LIntPredicate slt
+            case CompType greaterOrEqual => LIntPredicate sge
+            case CompType smallerOrEqual => LIntPredicate sle
+            case CompType compare        =>
+                Exception new("[scissors] Compare operator, ie. '<=>' not supported") \
+                    throw()
+                LIntPredicate eq
+        }
+        builder icmp(pred, lhs, rhs, "comptmp")
+    }
+
+    walkTernary: func (ternary: Ternary) -> LValue {
+        expr := walkExpression(ternary condition)
+        zero := LValue constReal(LType double_(), 0.0)
+        castV := builder sitofp(expr, LType double_(), "cast")
+        condV := builder fcmp(LRealPredicate one, castV, zero, "ternCond")
+
+        thenBB := function appendBasicBlock("then")
+        elseBB := function appendBasicBlock("else")
+        mergeBB := function appendBasicBlock("merge")
+
+        builder br(condV, thenBB, elseBB)
+
+        // emit then block        
+        builder positionAtEnd(thenBB)
+        thenV := walkExpression(ternary ifTrue)
+        thenBB = builder getInsertBlock()
+        builder br(mergeBB)
+
+        // emit else block
+        builder positionAtEnd(elseBB)
+        elseV := walkExpression(ternary ifFalse)
+        elseBB = builder getInsertBlock()
+        builder br(mergeBB)
+
+        // emit merge block
+        builder positionAtEnd(mergeBB)
+        pn := builder phi(toLType(ternary getType()), "iftmp")
+        pn addIncoming(thenV, thenBB)
+        pn addIncoming(elseV, elseBB)
+        pn
     }
 
     walkVariableAccess: func (vAcc: VariableAccess) -> LValue {
@@ -189,8 +259,8 @@ Generator: class {
         match ref {
             case vDecl: VariableDecl =>
                 if (!varmap contains?(vDecl)) {
-                    Exception new("[scissors] Variable decl accessed before it's declared: %s" \
-                        format(vDecl toString())) throw()
+                    Exception new("[scissors] Variable decl accessed " +
+                        "before it's declared: %s" format(vDecl toString())) throw()
                 }
                 builder load(varmap get(vDecl), vDecl getName() + "Load")
             case =>
@@ -201,9 +271,18 @@ Generator: class {
     }
 
 
-    cast: func (val: LValue, type:  LType) -> LValue {
-        // TODO: support other types of casts
-        builder intCast(val, type, "castResult")
+    cast: func (val: LValue, ltype: LType) -> LValue {
+        kind := ltype kind()
+
+        // TODO: handle casts much better
+        match kind {
+            case LTypeKind integer =>
+                builder intCast(val, ltype, "castResult")
+            case =>
+                Exception new("[scissors] Unsupported cast kind: %d" \
+                    format(kind)) throw()
+                nullValue()
+        }
     }
 
     walkBinaryOp: func (binop: BinaryOp) -> LValue {
@@ -212,15 +291,16 @@ Generator: class {
             case TypeKind INT =>
                 walkIntBinaryOp(binop)
             case =>
-                Exception new("[scissors] Unsupported typekind: %d" \
+                Exception new("[scissors] Unsupported binop typekind: %d" \
                     format(kind)) throw()
                 nullValue()
         }
     }
 
     walkIntBinaryOp: func (binop: BinaryOp) -> LValue {
-        lhs := cast(walkExpression(binop left ), toLType(binop getType()))
-        rhs := cast(walkExpression(binop right), toLType(binop getType()))
+        ltype := toLType(binop getType())
+        lhs := cast(walkExpression(binop left ), ltype)
+        rhs := cast(walkExpression(binop right), ltype)
 
         match (binop type) {
             case OpType add =>
